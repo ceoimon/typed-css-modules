@@ -3,6 +3,7 @@
 var path = require('path');
 var assert = require('assert');
 var DtsCreator = require('../lib/dtsCreator').DtsCreator;
+var fs = require('fs');
 
 describe('DtsCreator', () => {
   var creator = new DtsCreator();
@@ -143,4 +144,54 @@ describe('DtsContent', () => {
     });
   });
 
+  describe('#checkDirty', () => {
+    const TEMP_STYLE_PATH = 'test/tempStyle.css'
+    beforeEach((done) => {
+      fs.writeFileSync(TEMP_STYLE_PATH, '.myClass {color: red;}', 'utf8');
+      done();
+    })
+    afterEach((done) => {
+      fs.unlinkSync(TEMP_STYLE_PATH);
+      fs.unlinkSync(TEMP_STYLE_PATH + '.d.ts');
+      done();
+    })
+
+    it('returns true when type definitions have changed', done => {
+      var creator = new DtsCreator();
+      creator.create(TEMP_STYLE_PATH)
+      .then(content => {
+        return content.writeFile();
+      })
+      .then(() => {
+        fs.writeFileSync(TEMP_STYLE_PATH, '.myClassChanged {color: red;}', 'utf8');
+        return creator.create(TEMP_STYLE_PATH, null, true);
+      })
+      .then(content => {
+        return content.checkDirty();
+      })
+      .then(isDirty => {
+        assert.equal(isDirty, true);
+        done();
+      });
+    });
+
+    it('returns false when type definitions have not changed', done => {
+      var creator = new DtsCreator();
+      creator.create(TEMP_STYLE_PATH)
+      .then(content => {
+        return content.writeFile();
+      })
+      .then(() => {
+        fs.writeFileSync(TEMP_STYLE_PATH, '.myClass {color: red; font-weight: bold;}', 'utf8');
+        return creator.create(TEMP_STYLE_PATH, null, true);
+      })
+      .then(content => {
+        return content.checkDirty();
+      })
+      .then(isDirty => {
+        assert.equal(isDirty, false);
+        done();
+      });
+    });
+  })
 });

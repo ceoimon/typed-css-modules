@@ -62,6 +62,27 @@ class DtsContent {
     return path.join(this.rootDir, this.searchDir, this.rInputPath);
   }
 
+  checkDirty(delay = 0) {
+    var outPathDir = path.dirname(this.outputFilePath);
+    if(!isThere(this.outputFilePath)) {
+      return Promise.resolve(true);
+    }
+    return new Promise((resolve, reject) => {
+      clearTimeout(this.checkDirtyTimeout)
+      this.checkDirtyTimeout =
+        setTimeout(() => {
+          fs.readFile(this.outputFilePath, 'utf8', (err, content) => {
+            if (err) {
+              reject(err);
+            } else {
+              const newContent = this.formatted + os.EOL;
+              resolve(newContent !== content);
+            }
+          })
+        }, delay)
+    })
+  }
+
   writeFile() {
     var outPathDir = path.dirname(this.outputFilePath);
     if(!isThere(outPathDir)) {

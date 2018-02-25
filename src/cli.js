@@ -20,21 +20,59 @@ let yarg = yargs.usage('Create .css.d.ts from CSS modules *.css files.\nUsage: $
   .alias('p', 'pattern').describe('p', 'Glob pattern with css files')
   .alias('w', 'watch').describe('w', 'Watch input directory\'s css files or pattern').boolean('w')
   .alias('d', 'dropExtension').describe('d', 'Drop the input files extension').boolean('d')
+  .alias('f', 'force').describe('f', 'Force rewrite for any css content changes').boolean('f')
+  .alias('q', 'quiet').describe('q', 'No logs').boolean('q')
+  .alias('s', 'save-delay').describe('s', 'Set a file saving delay in order to make files monitor more accurate.').number('s')
   .alias('h', 'help').help('h')
   .version(() => require('../package.json').version)
 let argv = yarg.argv;
 let creator;
 
-function writeFile(f) {
-  creator.create(f, null, !!argv.w)
-  .then(content => content.writeFile())
-  .then(content => {
+// In some cases, saving a file will clear the file content and write in again.
+// We allow user to set a bit delay for that process.
+const hasSaveDelay = !Number.isNaN(Number(argv.s))
+const saveDelay = hasSaveDelay ? Number(argv.s) : (!!argv.w ? 100 : 0)
+const shouldLog = !!!argv.q
+
+function logWrote(content) {
+  if (shouldLog) {
     console.log('Wrote ' + chalk.green(content.outputFilePath));
+  }
+}
+
+function logWarn(content) {
+  if (shouldLog) {
     content.messageList.forEach(message => {
       console.warn(chalk.yellow('[Warn] ' + message));
     });
+  }
+}
+
+function processError(reason) {
+  if (shouldLog) {
+    console.error(chalk.red('[Error] ' + reason));
+  }
+  process.exit(1);
+}
+
+function writeFile(content) {
+  return content.writeFile()
+  .then(logWrote)
+  .then(() => content);
+}
+
+function processFile(f) {
+  creator.create(f, null, !!argv.w)
+  .then(content => {
+    if (!!argv.f) {
+      return writeFile(content);
+    } else {
+      return content.checkDirty(saveDelay)
+      .then(isDirty => isDirty ? writeFile(content) : content);
+    }
   })
-  .catch(reason => console.error(chalk.red('[Error] ' + reason)));
+  .then(logWarn)
+  .catch(processError);
 };
 
 let main = () => {
@@ -65,18 +103,19 @@ let main = () => {
   if(!argv.w) {
     glob(filesPattern, null, (err, files) => {
       if(err) {
-        console.error(err);
-        return;
+        return processError(err)
       }
       if(!files || !files.length) return;
-      files.forEach(writeFile);
+      files.forEach(processFile);
     });
   } else {
-    console.log('Watch ' + filesPattern + '...');
+    if (!!!argv.q) {
+      console.log('Watching ' + filesPattern + '...');
+    }
 
     var watcher = chokidar.watch(filesPattern);
-    watcher.on('add', writeFile);
-    watcher.on('change', writeFile);
+    watcher.on('add', processFile);
+    watcher.on('change', processFile);
   }
 };
 

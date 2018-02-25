@@ -142,6 +142,9 @@ DtsContent instance has `*.d.ts` content, final output path, and function to wri
 #### `writeFile() => Promise(dtsContent)`
 Writes the DtsContent instance's content to a file.
 
+#### `checkDirty() => Promies(boolean)`
+Check if type definitions has changed.
+
 * `dtsContent`: the DtsContent instance itself.
 
 #### `tokens`
