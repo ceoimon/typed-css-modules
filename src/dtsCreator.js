@@ -65,7 +65,6 @@ class DtsContent {
   }
 
   checkDirty(delay = 0) {
-    var outPathDir = path.dirname(this.outputFilePath);
     if(!isThere(this.outputFilePath)) {
       return Promise.resolve(true);
     }
