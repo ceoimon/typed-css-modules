@@ -50,7 +50,9 @@ function processError(reason) {
   if (shouldLog) {
     console.error(chalk.red('[Error] ' + reason));
   }
-  process.exit(1);
+  if (!!!argv.w) {
+    process.exit(1);
+  }
 }
 
 function writeFile(content) {
