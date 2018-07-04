@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-'use strict';
-
 import path from 'path';
 import chokidar from 'chokidar';
 import glob from 'glob';
@@ -113,7 +111,7 @@ let main = () => {
       console.log('Watching ' + filesPattern + '...');
     }
 
-    var watcher = chokidar.watch(filesPattern);
+    var watcher = chokidar.watch([filesPattern.replace(/\\/g, "/")]);
     watcher.on('add', processFile);
     watcher.on('change', processFile);
   }
