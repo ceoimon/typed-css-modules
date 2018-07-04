@@ -115,10 +115,15 @@ npm install typed-css-modules
 import DtsCreator from 'typed-css-modules';
 let creator = new DtsCreator();
 creator.create('src/style.css').then(content => {
-  console.log(content.tokens);          // ['myClass']
-  console.log(content.formatted);       // 'export const myClass: string;'
-  content.writeFile();                  // writes this content to "src/style.css.d.ts"
-});
+    console.log(content.tokens);          // ['myClass']
+    console.log(content.formatted);       // 'export const myClass: string;'
+    return content.checkDirty(100).then(isDirty => {
+      if (isDirty) {
+        // only write file if definition changed
+        return writeFile(content)
+      }
+    });
+  });
 ```
 
 ### class DtsCreator
@@ -145,10 +150,10 @@ DtsContent instance has `*.d.ts` content, final output path, and function to wri
 #### `writeFile() => Promise(dtsContent)`
 Writes the DtsContent instance's content to a file.
 
+* `dtsContent`: the DtsContent instance itself.
+
 #### `checkDirty() => Promies(boolean)`
 Check if type definitions has changed.
-
-* `dtsContent`: the DtsContent instance itself.
 
 #### `tokens`
 An array of tokens retrieved from input CSS file.
